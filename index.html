@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>1kg/2kg アナログはかり（切り替え一体版）</title>
+<style>
+  :root{--ink:#0b1220; --muted:#5b6477; --brand:#2563eb; --line:#e4e9f3}
+  *{box-sizing:border-box}
+  body{margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif; background:#f6f8fb; color:var(--ink)}
+  .wrap{max-width:1000px; margin:24px auto; padding:0 16px}
+  h1{font-size:22px; margin:0 0 12px 0; text-align:center}
+  .tabs{display:flex; justify-content:center; gap:8px; margin-bottom:12px}
+  .tabs button{appearance:none; border:none; border-radius:999px; padding:10px 16px; font-weight:700; cursor:pointer; box-shadow:inset 0 0 0 1px #d6dbe6; background:#f3f5f9}
+  .tabs button.active{background:var(--brand); color:#fff; box-shadow:none}
+  .card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.03); display:flex; justify-content:center}
+  .row{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; justify-content:center}
+  .btn{appearance:none; border:none; border-radius:999px; padding:10px 14px; font-weight:700; cursor:pointer; box-shadow:inset 0 0 0 1px #d6dbe6; background:#f3f5f9}
+  .btn.primary{background:var(--brand); color:#fff; box-shadow:none}
+  .shadow{filter: drop-shadow(0 2px 6px rgba(0,0,0,.12));}
+  .note{font-size:12px; color:var(--muted); text-align:center}
+  .screen{display:none}
+  .screen.active{display:block}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>アナログはかり（1kg / 2kg 切り替え）</h1>
+
+    <div class="tabs" role="tablist" aria-label="はかり切り替え">
+      <button id="tab1" role="tab" aria-controls="screen1" aria-selected="true" class="active">1 kg はかり</button>
+      <button id="tab2" role="tab" aria-controls="screen2" aria-selected="false">2 kg はかり</button>
+    </div>
+
+    <!-- 1kg はかり -->
+    <section id="screen1" class="screen active" role="tabpanel" aria-labelledby="tab1">
+      <div class="card">
+        <svg id="scaleSvg1" viewBox="0 0 420 420" width="420" height="420" class="shadow">
+          <circle cx="210" cy="210" r="208" fill="#fff" stroke="#2d6cdf" stroke-width="10"/>
+          <circle cx="210" cy="210" r="190" fill="#ffffff" />
+          <g id="ticks1" stroke="#333"></g>
+          <g id="labels1" fill="#333" font-weight="700"></g>
+          <g id="needle1" transform="rotate(0 210 210)">
+            <g id="needleHit1" style="cursor: grab">
+              <polygon points="198,234 222,234 218,125 214,78 210,48 206,78 202,125" fill="#e53935" stroke="#b91c1c" stroke-width="2" />
+              <circle cx="210" cy="210" r="11" fill="#fff" stroke="#555" stroke-width="3"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="rnd10_1">ランダム(10g)</button>
+        <button class="btn primary" id="rnd100_1">ランダム(100g)</button>
+        <button class="btn" id="toZero_1">0にもどす</button>
+        <button class="btn" id="toggleAns_1">答えを表示</button>
+      </div>
+      <div id="readout1" style="margin-top:10px; font-weight:800; text-align:center">現在：???</div>
+      <p class="note">針をドラッグ/スワイプで回せます。単体で動作します。</p>
+    </section>
+
+    <!-- 2kg はかり -->
+    <section id="screen2" class="screen" role="tabpanel" aria-labelledby="tab2">
+      <div class="card" style="justify-content:center">
+        <svg id="scaleSvg2" viewBox="0 0 420 420" width="420" height="420" class="shadow" role="img" aria-label="2kgアナログはかり">
+          <circle cx="210" cy="210" r="208" fill="#fff" stroke="#2d6cdf" stroke-width="10"/>
+          <circle cx="210" cy="210" r="190" fill="#ffffff" />
+          <g id="ticks2" stroke="#333"></g>
+          <g id="labels2" fill="#333" font-weight="700"></g>
+          <g id="needle2" transform="rotate(0 210 210)">
+            <g id="needleHit2" style="cursor: grab">
+              <polygon id="needlePoly2" fill="#e53935" stroke="#b91c1c" stroke-width="1"/>
+              <circle cx="210" cy="210" r="10" fill="#fff" stroke="#555" stroke-width="3"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="rnd10_2">ランダム(10g)</button>
+        <button class="btn primary" id="rnd100_2">ランダム(100g)</button>
+        <button class="btn" id="toZero_2">0にもどす</button>
+        <button class="btn" id="toggleAns_2">答えを表示</button>
+      </div>
+      <div id="readout2" style="margin-top:10px; font-weight:800; text-align:center">現在：???</div>
+      <p class="note">針をドラッグ/スワイプで回せます。</p>
+    </section>
+
+  </div>
+
+<script>
+// --- 切り替えタブ ---
+(function(){
+  const tab1 = document.getElementById('tab1');
+  const tab2 = document.getElementById('tab2');
+  const s1 = document.getElementById('screen1');
+  const s2 = document.getElementById('screen2');
+  function activate(which){
+    const a = which===1;
+    tab1.classList.toggle('active', a); tab1.setAttribute('aria-selected', a);
+    tab2.classList.toggle('active', !a); tab2.setAttribute('aria-selected', !a);
+    s1.classList.toggle('active', a);
+    s2.classList.toggle('active', !a);
+  }
+  tab1.addEventListener('click', ()=>activate(1));
+  tab2.addEventListener('click', ()=>activate(2));
+  activate(1);
+})();
+
+// --- 1kg はかり（元コードをID名前空間化） ---
+(function(){
+  const svg = document.getElementById('scaleSvg1');
+  const ticksGroup = document.getElementById('ticks1');
+  const labelsGroup = document.getElementById('labels1');
+  const needle = document.getElementById('needle1');
+  const hit = document.getElementById('needleHit1');
+  const readout = document.getElementById('readout1');
+  const btn10 = document.getElementById('rnd10_1');
+  const btn100 = document.getElementById('rnd100_1');
+  const btnZero = document.getElementById('toZero_1');
+  const btnToggle = document.getElementById('toggleAns_1');
+
+  const r=190,cx=210,cy=210; let grams=0; let answerHidden=true; let dragging=false;
+
+  function valueToAngle(g){return (g/1000)*360;}
+  function polar(radius,deg){const rad=((deg-90)*Math.PI)/180;return {x:cx+radius*Math.cos(rad),y:cy+radius*Math.sin(rad)};}
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+  for(let g=0;g<=1000;g+=5){
+    const deg=valueToAngle(g);
+    const is200=g%200===0;const is100=g%100===0;const is50=g%50===0;const is10=g%10===0;
+    const len=is200?26:is100?22:is50?16:is10?10:5;
+    const p1=polar(r-6,deg),p2=polar(r-6-len,deg);
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",p1.x);line.setAttribute("y1",p1.y);
+    line.setAttribute("x2",p2.x);line.setAttribute("y2",p2.y);
+    line.setAttribute("stroke-width",(is200||is100)?3:1);
+    ticksGroup.appendChild(line);
+  }
+
+  function label(val,text,size,weight,radius){
+    const pos=polar(radius??(r-58),valueToAngle(val));
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",pos.x);t.setAttribute("y",pos.y);
+    t.setAttribute("font-size",size);t.setAttribute("font-weight",weight);
+    t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","middle");
+    t.textContent=text;labelsGroup.appendChild(t);
+  }
+  label(0,"0",16,700,r+25);label(1000,"1000g",22,800,r-60);
+  [100,200,300,400,500,600,700,800,900].forEach(v=>label(v,v+"g",20,800));
+  [50].forEach(v=>label(v,v+"g",14,600,r-40));
+  [150,250,350,450,550,650,750,850,950].forEach(v=>label(v,v,14,600,r-40));
+
+  function setGrams(g){grams=clamp(Math.round(g/5)*5,0,1000);
+    needle.setAttribute("transform",`rotate(${valueToAngle(grams)} ${cx} ${cy})`);render();}
+  function render(){readout.textContent="現在："+(answerHidden?"???":grams+" g");
+    btnToggle.textContent=answerHidden?"答えを表示":"答えを隠す";}
+
+  function onMove(e){if(!dragging)return;
+    const rect=svg.getBoundingClientRect();
+    const rad=Math.atan2(e.clientY-(rect.top+rect.height/2),e.clientX-(rect.left+rect.width/2));
+    let deg=rad*180/Math.PI;deg=(deg+90+360)%360;
+    setGrams((deg/360)*1000);}  
+  function start(e){dragging=true;e.target.setPointerCapture?.(e.pointerId);} 
+  function stop(){dragging=false;}
+  hit.addEventListener("pointerdown",start);
+  window.addEventListener("pointermove",onMove);
+  window.addEventListener("pointerup",stop);
+
+  function spinTo(t){t=Math.max(0,Math.min(1000,Math.round(t/5)*5));
+    const start=grams,diff=(t-start+1000)%1000,back=1000-diff;
+    const dir=diff<=back?5:-5,total=diff<=back?diff:back;
+    const steps=Math.max(18,total/5),int=600/steps;let i=0;
+    const id=setInterval(()=>{i++;setGrams((grams+dir+1000)%1000);
+      if(i>=steps){clearInterval(id);setGrams(t);}},int);}  
+
+  btn10.addEventListener("click",()=>spinTo(Math.floor(Math.random()*101)*10));
+  btn100.addEventListener("click",()=>spinTo(Math.floor(Math.random()*11)*100));
+  btnZero.addEventListener("click",()=>setGrams(0));
+  btnToggle.addEventListener("click",()=>{answerHidden=!answerHidden;render();});
+
+  setGrams(0);
+})();
+
+// --- 2kg はかり（元コードをID名前空間化） ---
+(function(){
+  const svg = document.getElementById('scaleSvg2');
+  const ticksGroup = document.getElementById('ticks2');
+  const labelsGroup = document.getElementById('labels2');
+  const needle = document.getElementById('needle2');
+  const hit = document.getElementById('needleHit2');
+  const needlePoly = document.getElementById('needlePoly2');
+  const readout = document.getElementById('readout2');
+  const btn10 = document.getElementById('rnd10_2');
+  const btn100 = document.getElementById('rnd100_2');
+  const btnZero = document.getElementById('toZero_2');
+  const btnToggle = document.getElementById('toggleAns_2');
+
+  const r = 190, cx = 210, cy = 210;
+  let grams = 0, answerHidden = true, dragging = false;
+
+  function valueToAngle(g){ return (g/2000)*360; }
+  function polar(radius, deg){
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+  }
+  function clamp360(d){ return ((d%360)+360)%360; }
+
+  // ticks
+  for(let g=0; g<2000; g+=10){
+    const deg = valueToAngle(g);
+    const isMajor = g%200===0;
+    const isMid = !isMajor && g%100===0;
+    const len = isMajor?18:(isMid?12:6);
+    const p1 = polar(r-6, deg);
+    const p2 = polar(r-6-len, deg);
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+    line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+    line.setAttribute("stroke-width", isMajor?3:1);
+    ticksGroup.appendChild(line);
+  }
+
+  // labels
+  const labelPositions = [
+    { value:2000, text:"2 kg", fontSize:22, weight:800 },
+    { value:0, text:"0", radius:160, fontSize:16 },
+    { value:200, text:"200g", fontSize:16 },
+    { value:400, text:"400g", fontSize:16 },
+    { value:600, text:"600g", fontSize:16 },
+    { value:800, text:"800g", fontSize:16 },
+    { value:1000, text:"1 kg", fontSize:18, weight:700 },
+    { value:1500, text:"1 kg 500g", fontSize:16 }
+  ];
+  for(const lp of labelPositions){
+    const deg = valueToAngle(lp.value%2000);
+    const pos = polar(lp.radius ?? (r-40), deg);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", pos.x); t.setAttribute("y", pos.y);
+    t.setAttribute("font-size", lp.fontSize ?? 16);
+    t.setAttribute("font-weight", lp.weight ?? 600);
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("dominant-baseline", "middle");
+    t.textContent = lp.text;
+    labelsGroup.appendChild(t);
+  }
+
+  function setGrams(g){
+    grams = Math.max(0, Math.min(2000, Math.round(g/10)*10));
+    const deg = valueToAngle(grams);
+    needle.setAttribute("transform", `rotate(${deg} ${cx} ${cy})`);
+    renderReadout();
+  }
+  function gramsToLabel(g){
+    if (g % 1000 === 0) return (g/1000) + " kg";
+    if (g > 1000 && g % 500 === 0) return Math.floor(g/1000) + " kg " + (g%1000) + " g";
+    return g + " g";
+  }
+  function renderReadout(){
+    readout.textContent = "現在：" + (answerHidden? "???" : gramsToLabel(grams));
+    btnToggle.textContent = answerHidden? "答えを表示" : "答えを隠す";
+  }
+
+  // tapered needle polygon
+  (function updateNeedleShape(){
+    const baseWidth = 14, tipWidth = 2, length = 170;
+    const p1 = [cx - baseWidth/2, cy];
+    const p2 = [cx + baseWidth/2, cy];
+    const p3 = [cx + tipWidth/2, cy - length];
+    const p4 = [cx - tipWidth/2, cy - length];
+    needlePoly.setAttribute("points", [p1,p2,p3,p4].map(p=>p.join(",")).join(" "));
+  })();
+
+  // drag
+  function onPointerMove(e){
+    if(!dragging) return;
+    const rect = svg.getBoundingClientRect();
+    const cxp = rect.left + rect.width/2;
+    const cyp = rect.top + rect.height/2;
+    const rad = Math.atan2(e.clientY - cyp, e.clientX - cxp);
+    let deg = rad * 180 / Math.PI;
+    deg = clamp360(deg + 90);
+    const g = Math.round((deg/360)*2000/10)*10;
+    setGrams(g);
+  }
+  function startDrag(e){ dragging = true; e.target.setPointerCapture?.(e.pointerId); }
+  function stopDrag(){ dragging = false; }
+  hit.addEventListener("pointerdown", startDrag);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", stopDrag);
+
+  // spin animation
+  function spinTo(target){
+    target = Math.max(0, Math.min(2000, Math.round(target/10)*10));
+    const start = grams;
+    const diff = ( (target - start + 2000) % 2000 );
+    const backwards = 2000 - diff;
+    const dir = diff <= backwards ? 10 : -10;
+    const total = diff <= backwards ? diff : backwards;
+    const steps = Math.max(20, Math.floor(total/10));
+    const duration = 600;
+    const interval = duration/steps;
+    let i=0;
+    const id = setInterval(()=>{
+      i++;
+      setGrams((grams + dir + 2000) % 2000);
+      if(i>=steps){
+        clearInterval(id);
+        setGrams(target);
+      }
+    }, interval);
+  }
+
+  // buttons
+  btn10.addEventListener("click", ()=> spinTo(Math.floor(Math.random()*201)*10));
+  btn100.addEventListener("click", ()=> spinTo((Math.floor(Math.random()*20)+1)*100));
+  btnZero.addEventListener("click", ()=> setGrams(0));
+  btnToggle.addEventListener("click", ()=>{ answerHidden = !answerHidden; renderReadout(); });
+
+  setGrams(0);
+})();
+</script>
+</body>
+</html>
